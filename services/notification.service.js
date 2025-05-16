@@ -2,14 +2,20 @@
  * services/notification.service.js
  * Сервис для отправки уведомлений
  */
-
+import SibApiV3Sdk from "sib-api-v3-sdk";
+import dotenv from "dotenv";
 import { NotificationRecord } from "../models/notificationRecord.model.js";
-import { NOTIFICATION_STRATEGY, NOTIFICATION_STATUSES } from "../constants.js";
+import {
+  NOTIFICATION_STRATEGY,
+  NOTIFICATION_STATUSES,
+  EMAIL_TEMPLATE_MAP,
+} from "../constants.js";
 import {
   isValidTime,
   getNextValidTime,
   checkDailyNotificationLimit,
 } from "./time.service.js";
+dotenv.config();
 
 /**
  * Отправка SMS уведомления
@@ -40,13 +46,53 @@ const sendSMS = async (notification) => {
  * @param {Object} notification - Объект уведомления
  * @returns {Promise<Object>} Результат отправки
  */
-const sendEmail = async (notification) => {
+const sendEmail = async (
+  email,
+  code,
+  idNumber,
+  type,
+  companyName,
+  authLink,
+  notification
+) => {
   try {
-    // Здесь будет код для интеграции с Email-провайдером
-    console.log(`[Email] Отправка сообщения: ${notification.messageContent}`);
+    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    const apiKey = defaultClient.authentications["api-key"];
+    apiKey.apiKey = process.env.EMAIL_PROVIDER_API_KEY;
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    const templateId = EMAIL_TEMPLATE_MAP[type]?.[companyName];
 
-    // Имитация отправки (в реальном сервисе здесь будет API Email-провайдера)
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    if (!templateId) {
+      throw new Error(
+        `Не найден templateId для type: ${type}, companyName: ${companyName}`
+      );
+    }
+
+    const sendSmtpEmailParams = {};
+
+    if (idNumber) sendSmtpEmailParams.idNumber = idNumber;
+    if (code) sendSmtpEmailParams.code = code;
+    if (authLink) sendSmtpEmailParams.authLink = authLink;
+    if (notification)
+      sendSmtpEmailParams.notification = notification.messageContent;
+
+    const sendSmtpEmail = {
+      to: [{ email }],
+      templateId: templateId,
+      params: sendSmtpEmailParams,
+    };
+
+    // Здесь будет код для интеграции с Email-провайдером
+    console.log(
+      `[Email] Отправка сообщения c параметрами: ${JSON.stringify(
+        sendSmtpEmailParams,
+        null,
+        2
+      )}`
+    );
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`[Email] Email успешно отправлен!`);
 
     return {
       success: true,
@@ -54,7 +100,7 @@ const sendEmail = async (notification) => {
       messageId: `email-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     };
   } catch (error) {
-    console.error("Email sending error:", error);
+    console.error("[Email] Email sending error:", error);
     throw error;
   }
 };
@@ -130,26 +176,26 @@ export const sendNotification = async (recordId) => {
   }
 
   // Проверяем временные ограничения (не в ночное время, не в выходные и т.д.)
-  if (!isValidTime(new Date())) {
-    console.log(`Invalid time for notification ${recordId}, rescheduling`);
+  // if (!isValidTime(new Date())) {
+  //   console.log(`Invalid time for notification ${recordId}, rescheduling`);
 
-    // Получаем следующее допустимое время
-    const nextValidTime = getNextValidTime(new Date());
+  //   // Получаем следующее допустимое время
+  //   const nextValidTime = getNextValidTime(new Date());
 
-    // Обновляем запись уведомления в базе данных
-    await NotificationRecord.findByIdAndUpdate(record._id, {
-      scheduledFor: nextValidTime,
-    });
+  //   // Обновляем запись уведомления в базе данных
+  //   await NotificationRecord.findByIdAndUpdate(record._id, {
+  //     scheduledFor: nextValidTime,
+  //   });
 
-    // Перепланируем задачу в очереди (эта функция должна быть реализована в scheduler.service.js)
-    // await rescheduleBullJob(record._id, nextValidTime);
+  //   // Перепланируем задачу в очереди (эта функция должна быть реализована в scheduler.service.js)
+  //    await rescheduleBullJob(record._id, nextValidTime);
 
-    return {
-      success: false,
-      reason: "Invalid time, rescheduled",
-      nextAttempt: nextValidTime,
-    };
-  }
+  //   return {
+  //     success: false,
+  //     reason: "Invalid time, rescheduled",
+  //     nextAttempt: nextValidTime,
+  //   };
+  // }
 
   // Проверяем ограничение по количеству уведомлений в день
   const isWithinLimit = await checkDailyNotificationLimit(
@@ -177,7 +223,7 @@ export const sendNotification = async (recordId) => {
     });
 
     // Перепланируем задачу в очереди
-    // await rescheduleBullJob(record._id, nextDay);
+    await rescheduleBullJob(record._id, nextDay);
 
     return {
       success: false,
@@ -255,7 +301,7 @@ export const sendNotification = async (recordId) => {
       });
 
       // Перепланируем задачу в очереди
-      // await rescheduleBullJob(record._id, nextRetryTime);
+      await rescheduleBullJob(record._id, nextRetryTime);
 
       return {
         success: false,

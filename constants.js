@@ -429,6 +429,35 @@ const MESSAGE_TEMPLATES = {
   },
 };
 
+// Шаблоны для email уведомлений
+
+const EMAIL_TEMPLATE_MAP = {
+  password: {
+    Fastcredit: 2,
+    Fini: 8,
+    Uveria: 20,
+    Finzap: 21,
+    CreditMarket: 19,
+  },
+  code: {
+    Fastcredit: 3,
+    Fini: 9,
+    Uveria: 14,
+    Finzap: 12,
+    CreditMarket: 13,
+  },
+  "new-password": {
+    Fastcredit: 4,
+    Fini: 10,
+    Uveria: 17,
+    Finzap: 16,
+    CreditMarket: 18,
+  },
+  notification: {
+    CreditMarket: 22,
+  },
+};
+
 // Экспорт всех констант
 export {
   APP_CONFIG,
@@ -443,4 +472,5 @@ export {
   TIME_INTERVALS,
   CREDIT_STATUS_CHECK,
   MESSAGE_TEMPLATES,
+  EMAIL_TEMPLATE_MAP,
 };
