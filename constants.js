@@ -82,54 +82,56 @@ const NOTIFICATION_STRATEGY = {
   },
 
   // Каналы для каждого дня в превентивной фазе
+  // email, sms, push, ai_call
+
   PREVENTIVE_PHASE_CHANNELS: {
-    "-5": ["push"],
+    "-5": ["email"],
     "-3": ["email"],
-    "-2": ["sms"],
-    "-1": ["push", "sms"],
-    0: ["email", "sms"],
+    "-2": ["email"],
+    "-1": ["email"],
+    0: ["email"],
   },
 
   // Каналы для каждого дня в фазе ранней просрочки
   EARLY_DELAY_PHASE_CHANNELS: {
-    1: ["sms", "email"],
-    2: ["push", "sms"],
+    1: ["email"],
+    2: ["email"],
     3: ["email"],
-    4: ["sms", "ai_call"],
-    5: ["push", "email"],
-    6: ["sms"],
-    7: ["email", "ai_call"],
+    4: ["email"],
+    5: ["email"],
+    6: ["email"],
+    7: ["email"],
   },
 
   // Каналы для каждого дня в фазе средней просрочки
   MEDIUM_DELAY_PHASE_CHANNELS: {
-    8: ["sms", "push"],
+    8: ["email"],
     9: ["email"],
-    10: ["sms", "ai_call"],
-    11: ["push"],
+    10: ["email"],
+    11: ["email"],
     12: ["email"],
-    13: ["sms"],
-    14: ["ai_call", "email"],
-    15: ["sms", "push", "email"],
+    13: ["email"],
+    14: ["email"],
+    15: ["email"],
   },
 
   // Каналы для каждого дня в фазе поздней просрочки
   LATE_DELAY_PHASE_CHANNELS: {
     16: ["email"],
-    17: ["sms"],
-    18: ["sms"],
-    19: ["ai_call"],
-    20: ["email", "sms"],
-    21: ["sms", "push"],
-    22: ["sms", "push"],
-    23: ["sms", "push"],
+    17: ["email"],
+    18: ["email"],
+    19: ["email"],
+    20: ["email"],
+    21: ["email"],
+    22: ["email"],
+    23: ["email"],
     24: ["email"],
-    25: ["sms", "ai_call"],
-    26: ["sms", "ai_call"],
-    27: ["sms", "email", "push"],
-    28: ["sms", "email", "push"],
-    29: ["sms", "email", "push"],
-    30: ["sms", "email", "push", "ai_call"],
+    25: ["email"],
+    26: ["email"],
+    27: ["email"],
+    28: ["email"],
+    29: ["email"],
+    30: ["email"],
   },
 
   // Максимальное количество отправляемых уведомлений в день (согласно правовым ограничениям)

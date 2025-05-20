@@ -88,9 +88,11 @@ app.get("/", (req, res) => {
 // Подключение маршрутов API
 import notificationPlansRoutes from "./routes/notificationPlans.routes.js";
 import statisticsRoutes from "./routes/statistics.routes.js";
+import testRoutes from "./routes/test.routes.js";
 
 app.use("/api/notification-plans", notificationPlansRoutes);
 app.use("/api/statistics", statisticsRoutes);
+app.use("/api/test", testRoutes);
 
 // Импорт middleware для обработки ошибок
 import {

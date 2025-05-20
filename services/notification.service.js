@@ -15,6 +15,7 @@ import {
   getNextValidTime,
   checkDailyNotificationLimit,
 } from "./time.service.js";
+import { fetchCredit } from "./api.service.js";
 dotenv.config();
 
 /**
@@ -46,15 +47,15 @@ const sendSMS = async (notification) => {
  * @param {Object} notification - Объект уведомления
  * @returns {Promise<Object>} Результат отправки
  */
-const sendEmail = async (
+const sendEmail = async ({
   email,
   code,
   idNumber,
   type,
   companyName,
   authLink,
-  notification
-) => {
+  notification,
+}) => {
   try {
     const defaultClient = SibApiV3Sdk.ApiClient.instance;
     const apiKey = defaultClient.authentications["api-key"];
@@ -202,6 +203,7 @@ export const sendNotification = async (recordId) => {
     record.borrowerId,
     new Date()
   );
+
   if (!isWithinLimit) {
     console.log(
       `Daily notification limit exceeded for borrower ${record.borrowerId}`
@@ -235,13 +237,24 @@ export const sendNotification = async (recordId) => {
   try {
     let result;
 
+    const creditInfo = await fetchCredit(record.creditId);
+
+    console.log("[creditInfo]", JSON.stringify(creditInfo, null, 2));
+
+    const { kontakteUdaje, companyName } = creditInfo?.borrower || {};
+
     // Отправляем уведомление в зависимости от канала
     switch (record.channel) {
       case NOTIFICATION_STRATEGY.CHANNELS.SMS:
         result = await sendSMS(record);
         break;
       case NOTIFICATION_STRATEGY.CHANNELS.EMAIL:
-        result = await sendEmail(record);
+        result = await sendEmail({
+          email: kontakteUdaje?.email,
+          type: "notification",
+          companyName,
+          notification: record.messageContent,
+        });
         break;
       case NOTIFICATION_STRATEGY.CHANNELS.PUSH:
         result = await sendPush(record);
