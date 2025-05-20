@@ -49,10 +49,26 @@ mongoose
     process.exit(1);
   });
 
+const allowedUrl = ["https://server.walletroom.online"];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    console.log("CORS Origin запроса:", origin); // 👈
+    if (!origin || allowedUrl.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("❌ Блокирован запрос с origin:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
+
 // Middlewares
 app.use(helmet()); // Безопасность
 app.use(compression()); // Сжатие ответов
-app.use(cors()); // CORS
+app.options("*", cors(corsOptions)); // ← ОБЯЗАТЕЛЬНО для CORS preflight
+app.use(cors(corsOptions));
 app.use(express.json()); // Парсинг JSON
 app.use(express.urlencoded({ extended: true })); // Парсинг URL-encoded
 app.use(httpLogger); // Логирование HTTP-запросов

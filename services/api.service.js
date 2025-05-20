@@ -5,6 +5,7 @@
 
 import axios from "axios";
 import { APP_CONFIG, ERROR_MESSAGES } from "../constants.js";
+import { cryptoData, decryptData } from "../utils/crypto.js";
 
 // Создание экземпляра axios с предустановленными параметрами
 const apiClient = axios.create({
@@ -113,10 +114,17 @@ export const fetchBorrowerContacts = async (borrowerId) => {
  * @param {string} creditId - ID кредита
  * @returns {Promise<string>} Статус кредита
  */
-export const fetchCreditStatus = async (creditId) => {
+export const fetchCredit = async (creditId) => {
   try {
-    const response = await apiClient.get(`/api/credits/${creditId}/status`);
-    return response.data.status;
+    const readyData = cryptoData({ creditId });
+
+    const response = await apiClient.post(`/credit/api/get-credit`, {
+      data: readyData,
+    });
+
+    const decryptedData = decryptData(response.data);
+
+    return decryptedData.credit;
   } catch (error) {
     console.error(`Error fetching credit status for ${creditId}:`, error);
 

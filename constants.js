@@ -2,15 +2,17 @@
  * constants.js
  * Константы для сервиса планирования уведомлений
  */
+import dotenv from "dotenv";
+dotenv.config();
 
 // Базовые параметры приложения
 const APP_CONFIG = {
-  PORT: process.env.PORT || 3001,
+  PORT: process.env.PORT || 4001,
   NODE_ENV: process.env.NODE_ENV || "development",
   VERSION: "1.0.0",
   SERVICE_NAME: "notification-scheduler-service",
-  BASE_URL: process.env.BASE_URL || "http://localhost:3001",
-  MAIN_SERVICE_URL: process.env.MAIN_SERVICE_URL || "http://localhost:3000",
+  BASE_URL: process.env.BASE_URL || "http://localhost:4001",
+  MAIN_SERVICE_URL: process.env.MAIN_SERVICE_URL || "http://localhost:4000",
   API_SECRET_KEY: process.env.API_SECRET_KEY || "your-secure-key",
   REDIS_URL: process.env.REDIS_URL || "redis://127.0.0.1:6379",
 };

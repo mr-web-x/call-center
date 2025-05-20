@@ -20,7 +20,7 @@ import {
 } from "../config/bull.js";
 import { formatMessage } from "./template.service.js";
 import logger from "../config/logger.js";
-import { fetchCreditStatus } from "./api.service.js";
+import { fetchCredit } from "./api.service.js";
 
 /**
  * Функция для создания задач уведомлений по плану
@@ -645,7 +645,8 @@ export const checkCreditStatus = async (creditId) => {
     logger.info(`Checking status for credit ${creditId}`);
 
     // Получаем актуальный статус кредита из API основного сервиса
-    const newStatus = await fetchCreditStatus(creditId);
+    const exCredit = await fetchCredit(creditId);
+    const newStatus = exCredit.status;
 
     // Обновляем план уведомлений с новым статусом
     const plan = await NotificationPlan.findOneAndUpdate(
