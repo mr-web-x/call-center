@@ -56,26 +56,72 @@ const sendEmail = async ({
   authLink,
   notification,
 }) => {
+  console.log("[Email] Запуск функции sendEmail");
+  console.log(
+    `[Email] Входные параметры: ${JSON.stringify(
+      {
+        email,
+        code,
+        idNumber,
+        type,
+        companyName,
+        authLink,
+        notification,
+      },
+      null,
+      2
+    )}`
+  );
+
   try {
     const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    console.log("[Email] Инициализация клиента Email API");
+
     const apiKey = defaultClient.authentications["api-key"];
+    if (!process.env.EMAIL_PROVIDER_API_KEY) {
+      console.error(
+        "[Email] EMAIL_PROVIDER_API_KEY не установлен в переменных окружения"
+      );
+    }
     apiKey.apiKey = process.env.EMAIL_PROVIDER_API_KEY;
+    console.log("[Email] API ключ успешно установлен");
+
     const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    console.log("[Email] Создан экземпляр TransactionalEmailsApi");
+
     const templateId = EMAIL_TEMPLATE_MAP[type]?.[companyName];
+    console.log(
+      `[Email] Получен templateId: ${templateId} для type: ${type}, companyName: ${companyName}`
+    );
 
     if (!templateId) {
+      console.error(
+        `[Email] Ошибка: не найден templateId для type: ${type}, companyName: ${companyName}`
+      );
       throw new Error(
         `Не найден templateId для type: ${type}, companyName: ${companyName}`
       );
     }
 
     const sendSmtpEmailParams = {};
-
-    if (idNumber) sendSmtpEmailParams.idNumber = idNumber;
-    if (code) sendSmtpEmailParams.code = code;
-    if (authLink) sendSmtpEmailParams.authLink = authLink;
-    if (notification)
+    if (idNumber) {
+      sendSmtpEmailParams.idNumber = idNumber;
+      console.log(`[Email] Добавлен параметр idNumber: ${idNumber}`);
+    }
+    if (code) {
+      sendSmtpEmailParams.code = code;
+      console.log(`[Email] Добавлен параметр code: ${code}`);
+    }
+    if (authLink) {
+      sendSmtpEmailParams.authLink = authLink;
+      console.log(`[Email] Добавлен параметр authLink: ${authLink}`);
+    }
+    if (notification) {
       sendSmtpEmailParams.notification = notification.messageContent;
+      console.log(
+        `[Email] Добавлен параметр notification: ${notification.messageContent}`
+      );
+    }
 
     const sendSmtpEmail = {
       to: [{ email }],
@@ -83,17 +129,18 @@ const sendEmail = async ({
       params: sendSmtpEmailParams,
     };
 
-    // Здесь будет код для интеграции с Email-провайдером
     console.log(
       `[Email] Отправка сообщения c параметрами: ${JSON.stringify(
-        sendSmtpEmailParams,
+        sendSmtpEmail,
         null,
         2
       )}`
     );
 
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log(`[Email] Email успешно отправлен!`);
+    const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log("[Email] Ответ от провайдера:", response);
+
+    console.log("[Email] Email успешно отправлен!");
 
     return {
       success: true,
@@ -101,7 +148,13 @@ const sendEmail = async ({
       messageId: `email-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     };
   } catch (error) {
-    console.error("[Email] Email sending error:", error);
+    console.error(
+      "[Email] Ошибка при отправке Email:",
+      error?.message || error
+    );
+    if (error.response) {
+      console.error("[Email] Подробный ответ ошибки:", error.response);
+    }
     throw error;
   }
 };
@@ -241,7 +294,7 @@ export const sendNotification = async (recordId) => {
 
     console.log("[creditInfo]", JSON.stringify(creditInfo, null, 2));
 
-    const { kontakteUdaje, companyName } = creditInfo?.borrower || {};
+    const { kontaktneUdaje, companyName } = creditInfo?.borrower || {};
 
     // Отправляем уведомление в зависимости от канала
     switch (record.channel) {
@@ -250,10 +303,10 @@ export const sendNotification = async (recordId) => {
         break;
       case NOTIFICATION_STRATEGY.CHANNELS.EMAIL:
         result = await sendEmail({
-          email: kontakteUdaje?.email,
+          email: kontaktneUdaje?.email,
           type: "notification",
           companyName,
-          notification: record.messageContent,
+          notification: record,
         });
         break;
       case NOTIFICATION_STRATEGY.CHANNELS.PUSH:
