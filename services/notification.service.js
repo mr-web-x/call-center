@@ -10,11 +10,7 @@ import {
   NOTIFICATION_STATUSES,
   EMAIL_TEMPLATE_MAP,
 } from "../constants.js";
-import {
-  isValidTime,
-  getNextValidTime,
-  checkDailyNotificationLimit,
-} from "./time.service.js";
+import { checkDailyNotificationLimit } from "./time.service.js";
 import { fetchCredit } from "./api.service.js";
 dotenv.config();
 
@@ -23,24 +19,39 @@ dotenv.config();
  * @param {Object} notification - Объект уведомления
  * @returns {Promise<Object>} Результат отправки
  */
-const sendSMS = async (notification) => {
+
+async function sendSMS(messageToSend, phoneNumber, companyName = "SMS-Alert") {
   try {
-    // Здесь будет код для интеграции с SMS-провайдером
-    console.log(`[SMS] Отправка сообщения: ${notification.messageContent}`);
+    const url = "https://gatewayapi.com/rest/mtsms";
+    const apiToken = process.env.SMS_PROVIDER_API_KEY;
+    const encodedAuth = Buffer.from(`${apiToken}:`).toString("base64");
 
-    // Имитация отправки (в реальном сервисе здесь будет API SMS-провайдера)
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    console.log("[SMS] Запуск функции sendSMS");
 
-    return {
-      success: true,
-      provider: "SMS-Provider",
-      messageId: `sms-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    const payload = {
+      sender: companyName,
+      message: messageToSend,
+      recipients: [{ msisdn: Number(phoneNumber.replace(/\D/g, "")) }],
     };
+
+    const resp = await fetch(url, {
+      method: "post",
+      body: JSON.stringify(payload),
+      headers: {
+        Authorization: `Basic ${encodedAuth}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const serviseRes = await resp.json();
+
+    if (!serviseRes.usage?.total_cost) throw new Error("SMS service Error");
+
+    console.log("[SMS] SMS успешно отправлен!");
   } catch (error) {
-    console.error("SMS sending error:", error);
-    throw error;
+    throw new Error(error);
   }
-};
+}
 
 /**
  * Отправка Email уведомления
@@ -57,47 +68,19 @@ const sendEmail = async ({
   notification,
 }) => {
   console.log("[Email] Запуск функции sendEmail");
-  console.log(
-    `[Email] Входные параметры: ${JSON.stringify(
-      {
-        email,
-        code,
-        idNumber,
-        type,
-        companyName,
-        authLink,
-        notification,
-      },
-      null,
-      2
-    )}`
-  );
 
   try {
     const defaultClient = SibApiV3Sdk.ApiClient.instance;
     console.log("[Email] Инициализация клиента Email API");
 
     const apiKey = defaultClient.authentications["api-key"];
-    if (!process.env.EMAIL_PROVIDER_API_KEY) {
-      console.error(
-        "[Email] EMAIL_PROVIDER_API_KEY не установлен в переменных окружения"
-      );
-    }
     apiKey.apiKey = process.env.EMAIL_PROVIDER_API_KEY;
-    console.log("[Email] API ключ успешно установлен");
 
     const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-    console.log("[Email] Создан экземпляр TransactionalEmailsApi");
 
     const templateId = EMAIL_TEMPLATE_MAP[type]?.[companyName];
-    console.log(
-      `[Email] Получен templateId: ${templateId} для type: ${type}, companyName: ${companyName}`
-    );
 
     if (!templateId) {
-      console.error(
-        `[Email] Ошибка: не найден templateId для type: ${type}, companyName: ${companyName}`
-      );
       throw new Error(
         `Не найден templateId для type: ${type}, companyName: ${companyName}`
       );
@@ -106,21 +89,15 @@ const sendEmail = async ({
     const sendSmtpEmailParams = {};
     if (idNumber) {
       sendSmtpEmailParams.idNumber = idNumber;
-      console.log(`[Email] Добавлен параметр idNumber: ${idNumber}`);
     }
     if (code) {
       sendSmtpEmailParams.code = code;
-      console.log(`[Email] Добавлен параметр code: ${code}`);
     }
     if (authLink) {
       sendSmtpEmailParams.authLink = authLink;
-      console.log(`[Email] Добавлен параметр authLink: ${authLink}`);
     }
     if (notification) {
       sendSmtpEmailParams.notification = notification.messageContent;
-      console.log(
-        `[Email] Добавлен параметр notification: ${notification.messageContent}`
-      );
     }
 
     const sendSmtpEmail = {
@@ -129,16 +106,7 @@ const sendEmail = async ({
       params: sendSmtpEmailParams,
     };
 
-    console.log(
-      `[Email] Отправка сообщения c параметрами: ${JSON.stringify(
-        sendSmtpEmail,
-        null,
-        2
-      )}`
-    );
-
-    const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log("[Email] Ответ от провайдера:", response);
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
 
     console.log("[Email] Email успешно отправлен!");
 
@@ -299,7 +267,10 @@ export const sendNotification = async (recordId) => {
     // Отправляем уведомление в зависимости от канала
     switch (record.channel) {
       case NOTIFICATION_STRATEGY.CHANNELS.SMS:
-        result = await sendSMS(record);
+        result = await sendSMS(
+          record.messageContent,
+          kontaktneUdaje?.phoneNumber
+        );
         break;
       case NOTIFICATION_STRATEGY.CHANNELS.EMAIL:
         result = await sendEmail({

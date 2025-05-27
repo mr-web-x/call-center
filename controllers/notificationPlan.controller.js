@@ -87,6 +87,15 @@ export const createPlan = async (req, res, next) => {
       });
     }
 
+    console.log(
+      "Создаем новый план уведомлений",
+      creditId,
+      borrowerId,
+      dueDate,
+      amount,
+      currency
+    );
+
     // Создаем новый план уведомлений
     const newPlan = new NotificationPlan({
       creditId,

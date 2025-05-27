@@ -53,7 +53,6 @@ const allowedUrl = ["https://server.walletroom.online"];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log("CORS Origin запроса:", origin); // 👈
     if (!origin || allowedUrl.includes(origin)) {
       callback(null, true);
     } else {
